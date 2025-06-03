@@ -1,5 +1,3 @@
-#include <bits/stdc++.h>
-
 template<typename Constants>
 class Modular {
  public:
