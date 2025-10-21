@@ -1,15 +1,13 @@
 template<typename Constants>
 class Modular {
- public:
     static constexpr int32_t mod = Constants::MOD;
-    static uint32_t fact[Constants::PRECALC_MAX + 1];
-    static uint32_t ifact[Constants::PRECALC_MAX + 1];
+    static uint32_t _fact[Constants::PRECALC_MAX + 1];
+    static uint32_t _ifact[Constants::PRECALC_MAX + 1];
 
     /*
      * Pre-calculation
      */
 
- private:
     static bool constexpr module_is_prime() {
         for (uint32_t i = 2; i * i <= mod; ++i) {
             if (mod % i == 0) { return false; }
@@ -18,13 +16,13 @@ class Modular {
     }
 
     static void calculate_factorials() {
-        fact[0] = 1;
+        _fact[0] = 1;
         for (uint32_t i = 1; i <= Constants::PRECALC_MAX; ++i) {
-            fact[i] = static_cast<uint64_t>(fact[i - 1]) * i % mod;
+            _fact[i] = static_cast<uint64_t>(_fact[i - 1]) * i % mod;
         }
-        ifact[Constants::PRECALC_MAX] = inverse(fact[Constants::PRECALC_MAX]);
+        _ifact[Constants::PRECALC_MAX] = inverse(_fact[Constants::PRECALC_MAX]);
         for (uint32_t i = Constants::PRECALC_MAX; i > 0; --i) {
-            ifact[i - 1] = static_cast<uint64_t>(ifact[i]) * i % mod;
+            _ifact[i - 1] = static_cast<uint64_t>(_ifact[i]) * i % mod;
         }
     }
 
@@ -68,24 +66,44 @@ class Modular {
         return normalize(u);
     }
 
- public:
-    constexpr Modular() : value() {}
+public:
+    constexpr Modular() : value() {
+    }
 
     template<typename T>
-    Modular(const T &number) : value(normalize(number)) {}
+    Modular(const T &number) : value(normalize(number)) {
+    }
 
     /*
      * Static functions
      */
 
+    template<typename T>
+        requires Constants::NEED_PRECALC
+    static constexpr Modular fact(const T &n) {
+        if (n > static_cast<T>(Constants::PRECALC_MAX)) {
+            throw std::runtime_error("N is greater than maximum calculated value\n");
+        }
+        return Modular(_fact[n]);
+    }
+
+    template<typename T>
+        requires Constants::NEED_PRECALC
+    static constexpr Modular ifact(const T &n) {
+        if (n > static_cast<T>(Constants::PRECALC_MAX)) {
+            throw std::runtime_error("N is greater than maximum calculated value\n");
+        }
+        return Modular(_ifact[n]);
+    }
+
     template<typename T, typename U>
-    requires Constants::NEED_PRECALC
+        requires Constants::NEED_PRECALC
     static constexpr Modular binomial(const T &n, const U &k) {
         if (n < k) { return 0; }
         if (n > static_cast<T>(Constants::PRECALC_MAX)) {
             throw std::runtime_error("N is greater than maximum calculated value\n");
         }
-        return Modular(fact[n]) * ifact[k] * ifact[n - k];
+        return Modular(_fact[n]) * _ifact[k] * _ifact[n - k];
     }
 
     template<typename T, typename U>
@@ -167,7 +185,7 @@ class Modular {
         }
         for (int r = 2;; ++r) {
             bool ok = true;
-            for (int32_t p : primes) {
+            for (int32_t p: primes) {
                 if (power(r, (mod - 1) / p) == 1) {
                     ok = false;
                     break;
@@ -223,7 +241,7 @@ class Modular {
     Modular &operator /=(const Modular &other) {
         if constexpr (Constants::NEED_PRECALC) {
             if (other.value <= Constants::PRECALC_MAX) {
-                return *this *= Modular(static_cast<uint64_t>(ifact[other.value]) * fact[other.value - 1]);
+                return *this *= Modular(static_cast<uint64_t>(_ifact[other.value]) * _fact[other.value - 1]);
             }
         }
         return *this *= inverse(other.value);
@@ -262,10 +280,10 @@ class Modular {
 };
 
 template<typename Constants>
-uint32_t Modular<Constants>::fact[Constants::PRECALC_MAX + 1];
+uint32_t Modular<Constants>::_fact[Constants::PRECALC_MAX + 1];
 
 template<typename Constants>
-uint32_t Modular<Constants>::ifact[Constants::PRECALC_MAX + 1];
+uint32_t Modular<Constants>::_ifact[Constants::PRECALC_MAX + 1];
 
 template<typename T>
 bool operator ==(const Modular<T> &obj1, const Modular<T> &obj2) { return obj1.value == obj2.value; }
