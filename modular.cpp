@@ -28,9 +28,10 @@ class Modular {
 
     static void initialize() {
         static_assert(1 < mod && mod <= INT_MAX, "Module must be in range [2; 2^31 - 1]\n");
-        if constexpr (!Constants::NEED_PRECALC) { return; }
-        static_assert(module_is_prime(), "Precalc is possible only with prime module\n");
-        calculate_factorials();
+        if constexpr (Constants::NEED_PRECALC) {
+            static_assert(module_is_prime(), "Precalc is possible only with prime module\n");
+            calculate_factorials();
+        }
     }
 
     [[maybe_unused]] static inline const int initializer = (initialize(), 0);
