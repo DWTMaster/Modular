@@ -1,3 +1,8 @@
+#include <cstdint>
+#include <climits>
+#include <sstream>
+#include <vector>
+
 template<typename Constants>
 class Modular {
     static constexpr int32_t mod = Constants::MOD;
@@ -20,7 +25,7 @@ class Modular {
         for (uint32_t i = 1; i <= Constants::PRECALC_MAX; ++i) {
             _fact[i] = static_cast<uint64_t>(_fact[i - 1]) * i % mod;
         }
-        _ifact[Constants::PRECALC_MAX] = inverse(_fact[Constants::PRECALC_MAX]);
+        _ifact[Constants::PRECALC_MAX] = inverse(_fact[Constants::PRECALC_MAX]).value;
         for (uint32_t i = Constants::PRECALC_MAX; i > 0; --i) {
             _ifact[i - 1] = static_cast<uint64_t>(_ifact[i]) * i % mod;
         }
@@ -50,9 +55,10 @@ class Modular {
         return static_cast<uint32_t>(number);
     }
 
-    static constexpr uint32_t inverse(const uint32_t &number) {
+public:
+    static constexpr Modular inverse(const Modular &number) {
         if constexpr (module_is_prime()) {
-            return power(number, mod - 2).value;
+            return power(number, mod - 2);
         }
         int32_t a = static_cast<int32_t>(number), m = mod;
         int32_t u = 0, v = 1;
@@ -64,10 +70,9 @@ class Modular {
             std::swap(u, v);
         }
         if (m != 1) { throw std::runtime_error("Impossible to inverse number\n"); }
-        return normalize(u);
+        return Modular(u);
     }
 
-public:
     constexpr Modular() : value() {
     }
 
@@ -168,7 +173,7 @@ public:
         return R;
     }
 
-    static constexpr int32_t primitive_root() {
+    static Modular primitive_root() {
         if constexpr (!module_is_prime()) {
             throw std::runtime_error("Module is not prime\n");
         }
@@ -181,7 +186,7 @@ public:
                 number /= i;
             }
         }
-        if (number != -1) {
+        if (number > 1) {
             primes.push_back(number);
         }
         for (int r = 2;; ++r) {
@@ -193,7 +198,7 @@ public:
                 }
             }
             if (ok) {
-                return r;
+                return Modular(r);
             }
         }
     }
@@ -262,9 +267,17 @@ public:
         return *this;
     }
 
-    Modular operator ++(int) { return Modular(value + 1 < mod ? value + 1 : 0); }
+    Modular operator ++(int) {
+        Modular old = *this;
+        ++*this;
+        return old;
+    }
 
-    Modular operator --(int) { return Modular(value ? value - 1 : mod - 1); }
+    Modular operator --(int) {
+        Modular old = *this;
+        --*this;
+        return old;
+    }
 
     Modular operator -() { return Modular(value ? mod - value : 0); }
 
